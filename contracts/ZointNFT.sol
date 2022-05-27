@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
+import "@openzeppelin/contracts@4.4.0/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
@@ -9,6 +10,26 @@ contract NFTFactory is IERC721Receiver{
     mapping (string => address) private nftAddress;
     mapping (string => address) private nftMinter;
     mapping (string => address) private nftOwner;
+    address private constant platformAddress = 0xAaC0c3338A52e5D8D98bDdf8C5C5F54e093Ac49f;
+    address private constant feeToken = 0x11D634457F99595aBE7B582739fd52b7ed48995A;
+    uint private constant fee = 1000000000000;
+
+    modifier uniqueId(string memory _uid) {
+        require(nftAddress[_uid] == address(0), "uid not unique");
+        _;
+    }
+
+    modifier validId(string memory _uid) {
+        require(nftAddress[_uid] != address(0), "invalid uid");
+        _;
+    }
+
+    modifier minimumBalance() {
+        require(IERC20(feeToken).balanceOf(msg.sender) >= fee, "not enough balance");
+        _;
+    }
+
+    event NFTCreated(address _address);
 
     function createNFT(
         string memory _nftName,
@@ -16,15 +37,25 @@ contract NFTFactory is IERC721Receiver{
         string memory _nftDescription,
         string memory _nftUid,
         uint _nftPrice
-    ) external {
+    ) external payable uniqueId(_nftUid) minimumBalance{
+        // Take the security fee
+        IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee);
+
+        // Mint nft
         ZointNFT zointNFT = new ZointNFT(_nftName, _nftSymbol, _nftDescription, _nftUid, _nftPrice);
+        zointNFT.safeMint(address(this), 1);
+
+        // Emit event
+        emit NFTCreated(address(zointNFT));
+
+        // Update information
         nftAddress[_nftUid] = address(zointNFT);
         nftOwner[_nftUid] = msg.sender;
         nftMinter[_nftUid] = msg.sender;
     }
 
-    function getNFTAddress(string memory _uid) external view returns(address) {
-        return nftAddress[_uid];
+    function getNFTInfo(string memory _uid) external view validId(_uid) returns(string memory, string memory, string memory, string memory, uint) {
+        return ZointNFT(nftAddress[_uid]).getInfo();
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external pure override(IERC721Receiver) returns (bytes4) {
