@@ -7,6 +7,13 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract NFTFactory is IERC721Receiver{
+
+    struct MintedNFT {
+        string _uid;
+        address _address;
+    }
+
+    MintedNFT[] private mintedNFTs;
     mapping (string => address) private nftAddress;
     mapping (string => address) private nftMinter;
     mapping (string => address) private nftOwner;
@@ -29,6 +36,11 @@ contract NFTFactory is IERC721Receiver{
         _;
     }
 
+    modifier onlyOwner(string memory _uid) {
+        require(nftOwner[_uid] == msg.sender, "not owner");
+        _;
+    }
+
     event NFTCreated(address _address);
 
     function createNFT(
@@ -39,7 +51,8 @@ contract NFTFactory is IERC721Receiver{
         uint _nftPrice
     ) external payable uniqueId(_nftUid) minimumBalance{
         // Take the security fee
-        IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee);
+        bool sent = IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee);
+        require(sent, "transaction failed");
 
         // Mint nft
         ZointNFT zointNFT = new ZointNFT(_nftName, _nftSymbol, _nftDescription, _nftUid, _nftPrice);
@@ -52,10 +65,19 @@ contract NFTFactory is IERC721Receiver{
         nftAddress[_nftUid] = address(zointNFT);
         nftOwner[_nftUid] = msg.sender;
         nftMinter[_nftUid] = msg.sender;
+        mintedNFTs.push(MintedNFT({
+            _uid: _nftUid,
+            _address: address(zointNFT)
+        }));
+
     }
 
     function getNFTInfo(string memory _uid) external view validId(_uid) returns(string memory, string memory, string memory, string memory, uint) {
         return ZointNFT(nftAddress[_uid]).getInfo();
+    }
+
+    function getMintedNFTs() external view returns(MintedNFT[] memory) {
+        return mintedNFTs;
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external pure override(IERC721Receiver) returns (bytes4) {
