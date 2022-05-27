@@ -17,8 +17,8 @@ contract NFTFactory is IERC721Receiver{
     mapping (string => address) private nftAddress;
     mapping (string => address) private nftMinter;
     mapping (string => address) private nftOwner;
-    address private constant platformAddress = 0xAaC0c3338A52e5D8D98bDdf8C5C5F54e093Ac49f;
-    address private constant feeToken = 0x11D634457F99595aBE7B582739fd52b7ed48995A;
+    address private constant platformAddress = 0xb2C62Df72fDf7D1f3647D7D8704199fA3D4b9470;
+    address private constant feeToken = 0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9;
     uint private constant fee = 1000000000000;
 
     modifier uniqueId(string memory _uid) {
@@ -51,8 +51,7 @@ contract NFTFactory is IERC721Receiver{
         uint _nftPrice
     ) external payable uniqueId(_nftUid) minimumBalance{
         // Take the security fee
-        bool sent = IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee);
-        require(sent, "transaction failed");
+        require(IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee), "transaction failed");
 
         // Mint nft
         ZointNFT zointNFT = new ZointNFT(_nftName, _nftSymbol, _nftDescription, _nftUid, _nftPrice);
