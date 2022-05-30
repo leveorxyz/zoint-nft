@@ -17,18 +17,6 @@ contract NFTFactory {
         _;
     }
 
-    modifier validId(string memory _uid) {
-        require(nftOwner[_uid] != address(0), "invalid uid");
-        _;
-    }
-
-    modifier onlyOwner(string memory _uid) {
-        require(nftOwner[_uid] == msg.sender, "not owner");
-        _;
-    }
-
-    event NFTCreated(address _address);
-
     function createNFT(
         string memory _nftName,
         string memory _nftSymbol,
