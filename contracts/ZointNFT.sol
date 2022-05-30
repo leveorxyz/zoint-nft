@@ -31,10 +31,10 @@ contract NFTFactory is IERC721Receiver{
         _;
     }
 
-    modifier minimumBalance() {
-        require(IERC20(feeToken).balanceOf(msg.sender) >= fee, "not enough balance");
-        _;
-    }
+    // modifier minimumBalance() {
+    //     require(IERC20(feeToken).balanceOf(msg.sender) >= fee, "not enough balance");
+    //     _;
+    // }
 
     modifier onlyOwner(string memory _uid) {
         require(nftOwner[_uid] == msg.sender, "not owner");
@@ -49,9 +49,9 @@ contract NFTFactory is IERC721Receiver{
         string memory _nftDescription,
         string memory _nftUid,
         uint _nftPrice
-    ) external payable uniqueId(_nftUid) minimumBalance{
+    ) external payable uniqueId(_nftUid) {
         // Take the security fee
-        require(IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee), "transaction failed");
+        // require(IERC20(feeToken).transferFrom(msg.sender, platformAddress, fee), "transaction failed");
 
         // Mint nft
         ZointNFT zointNFT = new ZointNFT(_nftName, _nftSymbol, _nftDescription, _nftUid, _nftPrice);
@@ -77,6 +77,10 @@ contract NFTFactory is IERC721Receiver{
 
     function getMintedNFTs() external view returns(MintedNFT[] memory) {
         return mintedNFTs;
+    }
+
+    function getMintedNFTInfo(string memory _uid) external view returns(address) {
+        return nftMinter[_uid];
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external pure override(IERC721Receiver) returns (bytes4) {
